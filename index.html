@@ -11,7 +11,7 @@
 
 	window.onload = function() {
 
-		var game = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, create: create });
+		var game = new Phaser.Game(1024, 500, Phaser.AUTO, '', { preload: preload, create: create });
 
 		function preload () {
 
@@ -21,8 +21,25 @@
 
 		function create () {
 
-			var logo = game.add.sprite(game.world.centerX, game.world.centerY, 'ball');
-			logo.anchor.setTo(0.5, 0.5);
+			game.stage.backgroundColor = "#F0F0F0";
+
+			game.physics.startSystem(Phaser.Physics.ARCADE);
+
+			//  Set the world (global) gravity
+			game.physics.arcade.gravity.y = 200;
+
+			var player1 = game.add.sprite(game.world.centerX / 4, game.world.centerY / 4, 'ball');
+			player1.anchor.setTo(0.5, 0.5);
+			player1.scale.set(0.5, 0.5);
+			var player2 = game.add.sprite(game.world.centerX * 1.75, game.world.centerY / 4, 'ball');
+			player2.anchor.setTo(0.5, 0.5);
+			player2.scale.set(0.5, 0.5);
+
+			game.physics.enable( [ player1, player2], Phaser.Physics.ARCADE);
+
+			player1.body.collideWorldBounds = player2.body.collideWorldBounds = true;
+			player1.body.bounce.x = player2.body.bounce.x = 0.8;
+			player1.body.bounce.y = player2.body.bounce.y = 0.8;
 
 		}
 
