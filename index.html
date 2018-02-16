@@ -2,7 +2,7 @@
 <html>
 <head>
 	<meta charset="UTF-8" />
-	<title>hello phaser!</title>
+	<title>JTball</title>
 	<script src="js/phaser.min.js"></script>
 </head>
 <body>
@@ -11,11 +11,28 @@
 
 	window.onload = function() {
 
-		var game = new Phaser.Game(1024, 500, Phaser.AUTO, '', { preload: preload, create: create });
+		var settings = {
+
+			keys: {
+
+				player1_up: Phaser.Keyboard.W,
+				player1_left: Phaser.Keyboard.A,
+				player1_right: Phaser.Keyboard.D,
+				player2_up: Phaser.Keyboard.UP,
+				player2_left: Phaser.Keyboard.LEFT,
+				player2_right: Phaser.Keyboard.RIGHT,
+				
+			}
+
+		}
+
+		var game = new Phaser.Game(1024, 500, Phaser.AUTO, '', { preload: preload, create: create, update: update });
 
 		function preload () {
 
-			game.load.image('ball', 'images/volley_ball_283x248.png');
+			game.load.image('playball', 'images/playball.png');
+			game.load.image('player1', 'images/player1.png');
+			game.load.image('player2', 'images/player2.png');
 
 		}
 
@@ -28,18 +45,76 @@
 			//  Set the world (global) gravity
 			game.physics.arcade.gravity.y = 200;
 
-			var player1 = game.add.sprite(game.world.centerX / 4, game.world.centerY / 4, 'ball');
-			player1.anchor.setTo(0.5, 0.5);
-			player1.scale.set(0.5, 0.5);
-			var player2 = game.add.sprite(game.world.centerX * 1.75, game.world.centerY / 4, 'ball');
-			player2.anchor.setTo(0.5, 0.5);
-			player2.scale.set(0.5, 0.5);
+			// Create players (sprites)
+			game.players = [];
 
-			game.physics.enable( [ player1, player2], Phaser.Physics.ARCADE);
+			game.players.player1 = game.add.sprite(game.world.centerX / 4, game.world.centerY / 2, 'player1');
+			game.players.player1.anchor.setTo(0.5, 0.5);
+			game.players.player1.scale.set(0.5, 0.5);
 
-			player1.body.collideWorldBounds = player2.body.collideWorldBounds = true;
-			player1.body.bounce.x = player2.body.bounce.x = 0.8;
-			player1.body.bounce.y = player2.body.bounce.y = 0.8;
+			game.players.player2 = game.add.sprite(game.world.centerX * 1.75, game.world.centerY / 2, 'player2');
+			game.players.player2.anchor.setTo(0.5, 0.5);
+			game.players.player2.scale.set(0.5, 0.5);
+
+			// And create the playing ball
+			game.playball = game.add.sprite(game.world.centerX, game.world.centerY / 4, 'playball');
+			game.playball.anchor.setTo(0.5, 0.5);
+			game.playball.scale.set(0.5, 0.5);
+
+
+			// Apply physics to players
+			game.physics.arcade.enable( [ game.players.player1, game.players.player2, game.playball]);
+
+			game.players.player1.body.collideWorldBounds = game.players.player2.body.collideWorldBounds = game.playball.body.collideWorldBounds = true;
+			game.players.player1.body.bounce.x = game.players.player2.body.bounce.x = game.playball.body.bounce.x = 0.8;
+			game.players.player1.body.bounce.y = game.players.player2.body.bounce.y = game.playball.body.bounce.y = 0.8;
+
+			// By default the Body is a rectangle. Let's turn it into a circle with a radius in pixels		
+			game.players.player1.body.setCircle(109);
+			game.players.player2.body.setCircle(109);
+			game.playball.body.setCircle(109);
+
+			// Bind the keys
+			game.players.player1.keys = {};
+			game.players.player1.keys.up = game.input.keyboard.addKey(settings.keys.player1_up);
+			game.players.player1.keys.right = game.input.keyboard.addKey(settings.keys.player1_right);
+			game.players.player1.keys.left = game.input.keyboard.addKey(settings.keys.player1_left);
+
+			game.players.player2.keys = {};
+			game.players.player2.keys.up = game.input.keyboard.addKey(settings.keys.player2_up);
+			game.players.player2.keys.right = game.input.keyboard.addKey(settings.keys.player2_right);
+			game.players.player2.keys.left = game.input.keyboard.addKey(settings.keys.player2_left);
+
+		}
+
+		function update () {
+
+			// Enable collisions
+			game.physics.arcade.collide(game.players.player1, game.players.player2);
+			game.physics.arcade.collide(game.players.player1, game.playball);
+			game.physics.arcade.collide(game.players.player2, game.playball);
+
+			// Logic for movement
+			if (game.players.player1.keys.up.isDown) {
+				game.players.player1.body.velocity.y += -10;
+			}
+			if (game.players.player1.keys.left.isDown) {
+				game.players.player1.body.velocity.x += -10;
+			}
+			if (game.players.player1.keys.right.isDown) {
+				game.players.player1.body.velocity.x += 10;
+			}
+
+
+			if (game.players.player2.keys.up.isDown) {
+				game.players.player2.body.velocity.y += -10;
+			}
+			if (game.players.player2.keys.left.isDown) {
+				game.players.player2.body.velocity.x += -10;
+			}
+			if (game.players.player2.keys.right.isDown) {
+				game.players.player2.body.velocity.x += 10;
+			}
 
 		}
 
