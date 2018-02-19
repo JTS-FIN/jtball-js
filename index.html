@@ -45,15 +45,26 @@
 
 			ballProperties: {
 
-				mass: 5,
+				mass: 10,
 				bouncinessBetweenBalls: 0.95,
 				bouncinessWithWorld: 0.9,
 
 			},
 
+			net: {
+
+				width: 20,
+				height: 250,
+
+			},
+
+			turningSpeed: 0.05,
+			chargeSpeed: 0.5,
+			chargeMax: 100,
+
 		}
 
-		var game = new Phaser.Game(1024, 500, Phaser.AUTO, '', { preload: preload, create: create, update: update, render: render });
+		var game = new Phaser.Game(1280, 640, Phaser.AUTO, '', { preload: preload, create: create, update: update, render: render });
 
 		function preload () {
 
@@ -61,11 +72,19 @@
 			game.load.image('player1', 'images/player1.png');
 			game.load.image('player2', 'images/player2.png');
 
+			// Scale the game
+			// Makes the canvas as big as it can get on current screen
+			game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
+
 		}
 
 		function create () {
 
 			game.stage.backgroundColor = "#F0F0F0";
+
+			// Needed to show the fps, but it will actually slow down the fps
+			//game.time.advancedTiming = true;
+			//game.time.desiredFps = 60;
 
 			game.physics.startSystem(Phaser.Physics.P2JS);
 
@@ -75,30 +94,51 @@
 			// Create players (sprites)
 			game.players = [];
 
-			game.players.player1 = game.add.sprite(game.world.centerX / 4, game.world.centerY / 2, 'player1');
+			game.players.player1 = game.add.sprite(game.world.centerX / 4, game.world.centerY, 'player1');
 			game.players.player1.anchor.setTo(0.5, 0.5);
 			game.players.player1.scale.set(0.5, 0.5);
 
-			game.players.player2 = game.add.sprite(game.world.centerX * 1.75, game.world.centerY / 2, 'player2');
+			game.players.player2 = game.add.sprite(game.world.centerX * 1.75, game.world.centerY, 'player2');
 			game.players.player2.anchor.setTo(0.5, 0.5);
 			game.players.player2.scale.set(0.5, 0.5);
 
 			// And create the playing ball
-			game.playball = game.add.sprite(game.world.centerX, game.world.centerY / 4, 'playball');
+			game.playball = game.add.sprite(game.world.centerX, game.world.centerY, 'playball');
 			game.playball.anchor.setTo(0.5, 0.5);
 			game.playball.scale.set(0.5, 0.5);
 
+			// Create the net, we add this as a "invisible sprite", sprite is needed
+			// for collisions
+			// Logic for Y-location is bit complicated, since the coordinate it sets is the center of the sprite...
+			game.net = game.add.sprite(game.world.centerX, (game.world.height - settings.net.height) + settings.net.height / 2, null);
 
 			// Apply physics to players
-			game.physics.p2.enable( [ game.players.player1, game.players.player2, game.playball]);
+			game.physics.p2.enable( [ game.players.player1, game.players.player2, game.playball, game.net]);
 			game.physics.p2.boundsCollideWith = [ game.players.player1, game.players.player2, game.playball];
 
+			// Make net to stay where it is
+			game.net.body.static = true;
+
+			// Create a collision rectangle for net
+			game.net.body.setRectangle(settings.net.width, settings.net.height, 0, 0);
+
+			// Finally draw the net, so it is actually visible
+			game.net.graphics = game.add.graphics(0, 0);
+   			//game.net.graphics.lineStyle(2, 0x0000FF, 1);
+    		game.net.graphics.beginFill(0x000000, 0.5);
+    		game.net.graphics.drawRect(game.net.body.x - settings.net.width / 2, game.net.body.y - settings.net.height / 2, settings.net.width, settings.net.height);
+    		game.net.graphics.endFill();
+
 			// By default the Body is a rectangle. Let's turn it into a circle with a radius in pixels		
-			game.players.player1.body.setCircle(56);
-			game.players.player2.body.setCircle(56);
-			game.playball.body.setCircle(56);
+			game.players.player1.body.setCircle(55);
+			game.players.player2.body.setCircle(55);
+			game.playball.body.setCircle(55);
 
 			game.players.player1.body.mass = game.players.player2.body.mass = game.playball.body.mass = settings.ballProperties.mass;
+
+			// Add velocity to the playball
+			game.playball.body.velocity.y = -350;
+
 
 			// Create materials, which define how the interaction between these sprites occcur (friction, bounciness etc)
 			var ballMaterial = game.physics.p2.createMaterial('spriteMaterial', game.players.player1.body);
@@ -108,6 +148,9 @@
 			// Apply materials to other balls as well
 			game.players.player2.body.setMaterial(ballMaterial);
 			game.playball.body.setMaterial(ballMaterial);
+
+			// Apply world material to net
+			game.net.body.setMaterial(worldMaterial);
 
 			// Contact materials
 			var contactMaterialWithWorld = game.physics.p2.createContactMaterial(ballMaterial, worldMaterial);
@@ -173,15 +216,15 @@
 
 			// Logic for movement
 			if (game.players.player1.keys.left.isDown) {
-				game.players.player1.power.angle += -0.1;
+				game.players.player1.power.angle += settings.turningSpeed * -1;
 			}
 			if (game.players.player1.keys.right.isDown) {				
-				game.players.player1.power.angle += 0.1;
+				game.players.player1.power.angle += settings.turningSpeed;
 			}
 			if (game.players.player1.keys.down.isDown) {
-				game.players.player1.power.value += 1;
-				if (game.players.player1.power.value > 100) {
-					game.players.player1.power.value = 100;
+				game.players.player1.power.value += settings.chargeSpeed;
+				if (game.players.player1.power.value > settings.chargeMax) {
+					game.players.player1.power.value = settings.chargeMax;
 				}
 			}
 			// When down-key is relesed, apply to power to the balls movement
@@ -192,15 +235,15 @@
 			}
 
 			if (game.players.player2.keys.left.isDown) {
-				game.players.player2.power.angle += -0.1;
+				game.players.player2.power.angle += settings.turningSpeed * -1;
 			}
 			if (game.players.player2.keys.right.isDown) {				
-				game.players.player2.power.angle += 0.1;
+				game.players.player2.power.angle += settings.turningSpeed;
 			}
 			if (game.players.player2.keys.down.isDown) {
-				game.players.player2.power.value += 1;
-				if (game.players.player2.power.value > 100) {
-					game.players.player2.power.value = 100;
+				game.players.player2.power.value += settings.chargeSpeed;
+				if (game.players.player2.power.value > settings.chargeMax) {
+					game.players.player2.power.value = settings.chargeMax;
 				}
 			}
 			if (game.players.player2.keys.down.justUp) {
@@ -210,8 +253,8 @@
 			}
 
 			// Update the power lines
-			game.players.player1.power.line.fromAngle(game.players.player1.body.x, game.players.player1.body.y, game.players.player1.power.angle, game.players.player1.power.value);
-			game.players.player2.power.line.fromAngle(game.players.player2.body.x, game.players.player2.body.y, game.players.player2.power.angle, game.players.player2.power.value);
+			game.players.player1.power.line.fromAngle(game.players.player1.body.x + Math.cos(game.players.player1.power.line.angle) * 55, game.players.player1.body.y + Math.sin(game.players.player1.power.line.angle) * 55, game.players.player1.power.angle, game.players.player1.power.value);
+			game.players.player2.power.line.fromAngle(game.players.player2.body.x + Math.cos(game.players.player2.power.line.angle) * 55, game.players.player2.body.y + Math.sin(game.players.player2.power.line.angle) * 55, game.players.player2.power.angle, game.players.player2.power.value);
 
 			// Draw the graphics for the lines
 			game.players.player1.power.line.graphics.clear();
@@ -228,6 +271,9 @@
 
 		    //game.debug.geom(game.players.player1.power.line);
 		    //game.debug.lineInfo(game.players.player1.power.line, 32, 32);
+		    //game.debug.text(game.time.fps, 5, 15, 0x000000)
+
+		    //game.debug.geom(game.net);
 
 		}
 
