@@ -13,14 +13,33 @@
 
 		var settings = {
 
-			keys: {
+			player1: {
 
-				player1_up: Phaser.Keyboard.W,
-				player1_left: Phaser.Keyboard.A,
-				player1_right: Phaser.Keyboard.D,
-				player2_up: Phaser.Keyboard.UP,
-				player2_left: Phaser.Keyboard.LEFT,
-				player2_right: Phaser.Keyboard.RIGHT,
+				keys: {
+
+					up: Phaser.Keyboard.W,
+					left: Phaser.Keyboard.A,
+					right: Phaser.Keyboard.D,
+					down: Phaser.Keyboard.S,
+
+				},
+
+				powerLineColor: 0x00ff00,
+
+			},
+
+			player2: {
+
+				keys: {
+
+					up: Phaser.Keyboard.UP,
+					left: Phaser.Keyboard.LEFT,
+					right: Phaser.Keyboard.RIGHT,
+					down: Phaser.Keyboard.DOWN,
+
+				},
+
+				powerLineColor: 0xff0000,
 
 			},
 
@@ -34,7 +53,7 @@
 
 		}
 
-		var game = new Phaser.Game(1024, 500, Phaser.AUTO, '', { preload: preload, create: create, update: update });
+		var game = new Phaser.Game(1024, 500, Phaser.AUTO, '', { preload: preload, create: create, update: update, render: render });
 
 		function preload () {
 
@@ -110,7 +129,7 @@
     		contactMaterialWithWorld.frictionStiffness = 1e7;
 
     		// Relaxation of the resulting FrictionEquation that this ContactMaterial generate.
-    		contactMaterialWithWorld.frictionRelaxation = 3;
+    		contactMaterialWithWorld.frictionRelaxation = 300;
 
     		// Will add surface velocity to this material. If bodyA rests on top if bodyB, and the surface velocity is positive, bodyA will slide to the right.
     		contactMaterialWithWorld.surfaceVelocity = 0;        
@@ -122,42 +141,93 @@
     		contactMaterialBetweenBalls.relaxation = 3;
     		contactMaterialBetweenBalls.frictionStiffness = 1e7;
     		contactMaterialBetweenBalls.frictionRelaxation = 3;
-    		contactMaterialBetweenBalls.surfaceVelocity = 0;	
+    		contactMaterialBetweenBalls.surfaceVelocity = 0;
 
+    		// Power represents charging when user pushes the down-button, and when released launched into the ball
+    		game.players.player1.power = { value: 0, angle: 0 };
+    		game.players.player2.power = { value: 0, angle: 0 };
+
+    		// Create power lines to balls (these indicate the launch power and direction)
+    		game.players.player1.power.line = new Phaser.Line(game.players.player1.body.x, game.players.player1.body.y, game.players.player1.body.x, game.players.player1.body.y);
+    		game.players.player1.power.line.width = 100;
+    		game.players.player1.power.line.graphics = game.add.graphics(0,0);
+    		game.players.player2.power.line = new Phaser.Line(game.players.player2.body.x, game.players.player2.body.y, game.players.player2.body.x, game.players.player2.body.y);
+    		game.players.player2.power.line.width = 100;
+    		game.players.player2.power.line.graphics = game.add.graphics(0,0);
 
 			// Bind the keys to players
 			game.players.player1.keys = {};
-			game.players.player1.keys.up = game.input.keyboard.addKey(settings.keys.player1_up);
-			game.players.player1.keys.right = game.input.keyboard.addKey(settings.keys.player1_right);
-			game.players.player1.keys.left = game.input.keyboard.addKey(settings.keys.player1_left);
+			game.players.player1.keys.up = game.input.keyboard.addKey(settings.player1.keys.up);
+			game.players.player1.keys.right = game.input.keyboard.addKey(settings.player1.keys.right);
+			game.players.player1.keys.left = game.input.keyboard.addKey(settings.player1.keys.left);
+			game.players.player1.keys.down = game.input.keyboard.addKey(settings.player1.keys.down);
 			game.players.player2.keys = {};
-			game.players.player2.keys.up = game.input.keyboard.addKey(settings.keys.player2_up);
-			game.players.player2.keys.right = game.input.keyboard.addKey(settings.keys.player2_right);
-			game.players.player2.keys.left = game.input.keyboard.addKey(settings.keys.player2_left);
+			game.players.player2.keys.up = game.input.keyboard.addKey(settings.player2.keys.up);
+			game.players.player2.keys.right = game.input.keyboard.addKey(settings.player2.keys.right);
+			game.players.player2.keys.left = game.input.keyboard.addKey(settings.player2.keys.left);
+			game.players.player2.keys.down = game.input.keyboard.addKey(settings.player2.keys.down);
 
 		}
 
 		function update () {
 
 			// Logic for movement
-			if (game.players.player1.keys.up.isDown) {
-				game.players.player1.body.velocity.y += -10;
-			}
 			if (game.players.player1.keys.left.isDown) {
-				game.players.player1.body.velocity.x += -10;
+				game.players.player1.power.angle += -0.1;
 			}
-			if (game.players.player1.keys.right.isDown) {
-				game.players.player1.body.velocity.x += 10;
+			if (game.players.player1.keys.right.isDown) {				
+				game.players.player1.power.angle += 0.1;
 			}
-			if (game.players.player2.keys.up.isDown) {
-				game.players.player2.body.velocity.y += -10;
+			if (game.players.player1.keys.down.isDown) {
+				game.players.player1.power.value += 1;
+				if (game.players.player1.power.value > 100) {
+					game.players.player1.power.value = 100;
+				}
 			}
+			// When down-key is relesed, apply to power to the balls movement
+			if (game.players.player1.keys.down.justUp) {
+				game.players.player1.body.velocity.x += Math.cos(game.players.player1.power.angle) * game.players.player1.power.value * 15;
+				game.players.player1.body.velocity.y += Math.sin(game.players.player1.power.angle) * game.players.player1.power.value * 15;
+				game.players.player1.power.value = 0;
+			}
+
 			if (game.players.player2.keys.left.isDown) {
-				game.players.player2.body.velocity.x += -10;
+				game.players.player2.power.angle += -0.1;
 			}
-			if (game.players.player2.keys.right.isDown) {
-				game.players.player2.body.velocity.x += 10;
+			if (game.players.player2.keys.right.isDown) {				
+				game.players.player2.power.angle += 0.1;
 			}
+			if (game.players.player2.keys.down.isDown) {
+				game.players.player2.power.value += 1;
+				if (game.players.player2.power.value > 100) {
+					game.players.player2.power.value = 100;
+				}
+			}
+			if (game.players.player2.keys.down.justUp) {
+				game.players.player2.body.velocity.x += Math.cos(game.players.player2.power.angle) * game.players.player2.power.value * 15;
+				game.players.player2.body.velocity.y += Math.sin(game.players.player2.power.angle) * game.players.player2.power.value * 15;
+				game.players.player2.power.value = 0;
+			}
+
+			// Update the power lines
+			game.players.player1.power.line.fromAngle(game.players.player1.body.x, game.players.player1.body.y, game.players.player1.power.angle, game.players.player1.power.value);
+			game.players.player2.power.line.fromAngle(game.players.player2.body.x, game.players.player2.body.y, game.players.player2.power.angle, game.players.player2.power.value);
+
+			// Draw the graphics for the lines
+			game.players.player1.power.line.graphics.clear();
+			game.players.player1.power.line.graphics.lineStyle(10, settings.player1.powerLineColor, 1);
+			game.players.player1.power.line.graphics.moveTo(game.players.player1.power.line.start.x, game.players.player1.power.line.start.y);
+			game.players.player1.power.line.graphics.lineTo(game.players.player1.power.line.end.x, game.players.player1.power.line.end.y);
+			game.players.player2.power.line.graphics.clear();
+			game.players.player2.power.line.graphics.lineStyle(10, settings.player2.powerLineColor, 1);
+			game.players.player2.power.line.graphics.moveTo(game.players.player2.power.line.start.x, game.players.player2.power.line.start.y);
+			game.players.player2.power.line.graphics.lineTo(game.players.player2.power.line.end.x, game.players.player2.power.line.end.y);
+		}
+
+		function render() {
+
+		    //game.debug.geom(game.players.player1.power.line);
+		    //game.debug.lineInfo(game.players.player1.power.line, 32, 32);
 
 		}
 
