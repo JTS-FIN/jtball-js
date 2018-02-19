@@ -21,8 +21,16 @@
 				player2_up: Phaser.Keyboard.UP,
 				player2_left: Phaser.Keyboard.LEFT,
 				player2_right: Phaser.Keyboard.RIGHT,
-				
-			}
+
+			},
+
+			ballProperties: {
+
+				mass: 5,
+				bouncinessBetweenBalls: 0.95,
+				bouncinessWithWorld: 0.9,
+
+			},
 
 		}
 
@@ -40,10 +48,10 @@
 
 			game.stage.backgroundColor = "#F0F0F0";
 
-			game.physics.startSystem(Phaser.Physics.ARCADE);
+			game.physics.startSystem(Phaser.Physics.P2JS);
 
 			//  Set the world (global) gravity
-			game.physics.arcade.gravity.y = 200;
+			game.physics.p2.gravity.y = 200;
 
 			// Create players (sprites)
 			game.players = [];
@@ -63,23 +71,65 @@
 
 
 			// Apply physics to players
-			game.physics.arcade.enable( [ game.players.player1, game.players.player2, game.playball]);
-
-			game.players.player1.body.collideWorldBounds = game.players.player2.body.collideWorldBounds = game.playball.body.collideWorldBounds = true;
-			game.players.player1.body.bounce.x = game.players.player2.body.bounce.x = game.playball.body.bounce.x = 0.8;
-			game.players.player1.body.bounce.y = game.players.player2.body.bounce.y = game.playball.body.bounce.y = 0.8;
+			game.physics.p2.enable( [ game.players.player1, game.players.player2, game.playball]);
+			game.physics.p2.boundsCollideWith = [ game.players.player1, game.players.player2, game.playball];
 
 			// By default the Body is a rectangle. Let's turn it into a circle with a radius in pixels		
-			game.players.player1.body.setCircle(109);
-			game.players.player2.body.setCircle(109);
-			game.playball.body.setCircle(109);
+			game.players.player1.body.setCircle(56);
+			game.players.player2.body.setCircle(56);
+			game.playball.body.setCircle(56);
 
-			// Bind the keys
+			game.players.player1.body.mass = game.players.player2.body.mass = game.playball.body.mass = settings.ballProperties.mass;
+
+			// Create materials, which define how the interaction between these sprites occcur (friction, bounciness etc)
+			var ballMaterial = game.physics.p2.createMaterial('spriteMaterial', game.players.player1.body);
+			var worldMaterial = game.physics.p2.createMaterial('worldMaterial');
+			game.physics.p2.setWorldMaterial(worldMaterial, true, true, true, true);
+
+			// Apply materials to other balls as well
+			game.players.player2.body.setMaterial(ballMaterial);
+			game.playball.body.setMaterial(ballMaterial);
+
+			// Contact materials
+			var contactMaterialWithWorld = game.physics.p2.createContactMaterial(ballMaterial, worldMaterial);
+			var contactMaterialBetweenBalls = game.physics.p2.createContactMaterial(ballMaterial, ballMaterial);
+
+			// Friction to use in the contact of these two materials.
+			contactMaterialWithWorld.friction = 5;
+
+			// Restitution (i.e. how bouncy it is!) to use in the contact of these two materials.
+    		contactMaterialWithWorld.restitution = settings.ballProperties.bouncinessWithWorld;  
+
+    		// Stiffness of the resulting ContactEquation that this ContactMaterial generate.
+			contactMaterialWithWorld.stiffness = 1e7;
+
+			// Relaxation of the resulting ContactEquation that this ContactMaterial generate.
+    		contactMaterialWithWorld.relaxation = 3;
+
+    		// Stiffness of the resulting FrictionEquation that this ContactMaterial generate.
+    		contactMaterialWithWorld.frictionStiffness = 1e7;
+
+    		// Relaxation of the resulting FrictionEquation that this ContactMaterial generate.
+    		contactMaterialWithWorld.frictionRelaxation = 3;
+
+    		// Will add surface velocity to this material. If bodyA rests on top if bodyB, and the surface velocity is positive, bodyA will slide to the right.
+    		contactMaterialWithWorld.surfaceVelocity = 0;        
+
+    		// And same logic to contacts between balls (I enjoy saying that)
+			contactMaterialBetweenBalls.friction = 30;
+    		contactMaterialBetweenBalls.restitution = settings.ballProperties.bouncinessBetweenBalls;			
+    		contactMaterialBetweenBalls.stiffness = 1e7;
+    		contactMaterialBetweenBalls.relaxation = 3;
+    		contactMaterialBetweenBalls.frictionStiffness = 1e7;
+    		contactMaterialBetweenBalls.frictionRelaxation = 3;
+    		contactMaterialBetweenBalls.surfaceVelocity = 0;	
+
+
+			// Bind the keys to players
 			game.players.player1.keys = {};
 			game.players.player1.keys.up = game.input.keyboard.addKey(settings.keys.player1_up);
 			game.players.player1.keys.right = game.input.keyboard.addKey(settings.keys.player1_right);
 			game.players.player1.keys.left = game.input.keyboard.addKey(settings.keys.player1_left);
-
 			game.players.player2.keys = {};
 			game.players.player2.keys.up = game.input.keyboard.addKey(settings.keys.player2_up);
 			game.players.player2.keys.right = game.input.keyboard.addKey(settings.keys.player2_right);
@@ -88,11 +138,6 @@
 		}
 
 		function update () {
-
-			// Enable collisions
-			game.physics.arcade.collide(game.players.player1, game.players.player2);
-			game.physics.arcade.collide(game.players.player1, game.playball);
-			game.physics.arcade.collide(game.players.player2, game.playball);
 
 			// Logic for movement
 			if (game.players.player1.keys.up.isDown) {
@@ -104,8 +149,6 @@
 			if (game.players.player1.keys.right.isDown) {
 				game.players.player1.body.velocity.x += 10;
 			}
-
-
 			if (game.players.player2.keys.up.isDown) {
 				game.players.player2.body.velocity.y += -10;
 			}
