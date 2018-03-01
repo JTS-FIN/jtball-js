@@ -4,10 +4,11 @@
 	<meta charset="UTF-8" />
 	<title>JTball</title>
 	<script src="js/phaser.min.js"></script>
+	<script src="js/player.class.js"></script>
 	<style>
 		body {
 			margin: 0;
-			padding:;
+			padding: 0;
 		}
 	</style>
 </head>
@@ -17,6 +18,7 @@
 
 	window.onload = function() {
 
+		// @TODO, load settings with AJAX from external file
 		var settings = {
 
 			player1: {
@@ -31,6 +33,7 @@
 				},
 
 				powerLineColor: 0x00ff00,
+				image: 'images/player1.png',
 
 			},
 
@@ -46,6 +49,7 @@
 				},
 
 				powerLineColor: 0xff0000,
+				image: 'images/player2.png',
 
 			},
 
@@ -54,6 +58,7 @@
 				mass: 10,
 				bouncinessBetweenBalls: 0.95,
 				bouncinessWithWorld: 0.9,
+				image: 'images/playball.png',
 
 			},
 
@@ -71,42 +76,32 @@
 		}
 
 		var game = new Phaser.Game(1280, 600, Phaser.AUTO, '', { preload: preload, create: create, update: update, render: render });
+		
+		// Create players
+		game.players = [];
+		game.players.player1 = new Player('player1', game, settings);
+		game.players.player2 = new Player('player2', game, settings);
 
 		function preload () {
-
-			game.load.image('playball', 'images/playball.png');
-			game.load.image('player1', 'images/player1.png');
-			game.load.image('player2', 'images/player2.png');
+			game.load.image('playball', settings.ballProperties.image);
+			game.players.player1.preload();
+			game.players.player2.preload();
 
 			// Scale the game
 			// Makes the canvas as big as it can get on current screen
 			game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
-
 		}
 
 		function create () {
-
 			game.stage.backgroundColor = "#F0F0F0";
-
-			// Needed to show the fps, but it will actually slow down the fps
-			//game.time.advancedTiming = true;
-			//game.time.desiredFps = 60;
 
 			game.physics.startSystem(Phaser.Physics.P2JS);
 
 			//  Set the world (global) gravity
 			game.physics.p2.gravity.y = 200;
-
-			// Create players (sprites)
-			game.players = [];
-
-			game.players.player1 = game.add.sprite(game.world.centerX / 4, game.world.centerY, 'player1');
-			game.players.player1.anchor.setTo(0.5, 0.5);
-			game.players.player1.scale.set(0.5, 0.5);
-
-			game.players.player2 = game.add.sprite(game.world.centerX * 1.75, game.world.centerY, 'player2');
-			game.players.player2.anchor.setTo(0.5, 0.5);
-			game.players.player2.scale.set(0.5, 0.5);
+			
+			game.players.player1.createSprite(game.world.centerX / 4, game.world.centerY);
+			game.players.player2.createSprite(game.world.centerX * 1.75, game.world.centerY);
 
 			// And create the playing ball
 			game.playball = game.add.sprite(game.world.centerX, game.world.centerY, 'playball');
@@ -119,8 +114,8 @@
 			game.net = game.add.sprite(game.world.centerX, (game.world.height - settings.net.height) + settings.net.height / 2, null);
 
 			// Apply physics to players
-			game.physics.p2.enable( [ game.players.player1, game.players.player2, game.playball, game.net]);
-			game.physics.p2.boundsCollideWith = [ game.players.player1, game.players.player2, game.playball];
+			game.physics.p2.enable( [ game.playball, game.net]);
+			game.physics.p2.boundsCollideWith = [ game.players.player1.sprite, game.players.player2.sprite, game.playball];
 
 			// Make net to stay where it is
 			game.net.body.static = true;
@@ -130,29 +125,28 @@
 
 			// Finally draw the net, so it is actually visible
 			game.net.graphics = game.add.graphics(0, 0);
-   			//game.net.graphics.lineStyle(2, 0x0000FF, 1);
-    		game.net.graphics.beginFill(0x000000, 0.5);
-    		game.net.graphics.drawRect(game.net.body.x - settings.net.width / 2, game.net.body.y - settings.net.height / 2, settings.net.width, settings.net.height);
-    		game.net.graphics.endFill();
+			//game.net.graphics.lineStyle(2, 0x0000FF, 1);
+			game.net.graphics.beginFill(0x000000, 0.5);
+			game.net.graphics.drawRect(game.net.body.x - settings.net.width / 2, game.net.body.y - settings.net.height / 2, settings.net.width, settings.net.height);
+			game.net.graphics.endFill();
 
 			// By default the Body is a rectangle. Let's turn it into a circle with a radius in pixels		
-			game.players.player1.body.setCircle(55);
-			game.players.player2.body.setCircle(55);
 			game.playball.body.setCircle(55);
 
-			game.players.player1.body.mass = game.players.player2.body.mass = game.playball.body.mass = settings.ballProperties.mass;
+			game.playball.body.mass = settings.ballProperties.mass;
 
 			// Add velocity to the playball
 			game.playball.body.velocity.y = -350;
 
-
 			// Create materials, which define how the interaction between these sprites occcur (friction, bounciness etc)
-			var ballMaterial = game.physics.p2.createMaterial('spriteMaterial', game.players.player1.body);
+			// @TODO make a class or atleast function to handle the material creatings, now it takes more than half of the code in
+			// Main create class!
+			var ballMaterial = game.physics.p2.createMaterial('spriteMaterial', game.players.player1.sprite.body);
 			var worldMaterial = game.physics.p2.createMaterial('worldMaterial');
 			game.physics.p2.setWorldMaterial(worldMaterial, true, true, true, true);
 
 			// Apply materials to other balls as well
-			game.players.player2.body.setMaterial(ballMaterial);
+			game.players.player2.sprite.body.setMaterial(ballMaterial);
 			game.playball.body.setMaterial(ballMaterial);
 
 			// Apply world material to net
@@ -166,121 +160,43 @@
 			contactMaterialWithWorld.friction = 5;
 
 			// Restitution (i.e. how bouncy it is!) to use in the contact of these two materials.
-    		contactMaterialWithWorld.restitution = settings.ballProperties.bouncinessWithWorld;  
+			contactMaterialWithWorld.restitution = settings.ballProperties.bouncinessWithWorld;  
 
-    		// Stiffness of the resulting ContactEquation that this ContactMaterial generate.
+			// Stiffness of the resulting ContactEquation that this ContactMaterial generate.
 			contactMaterialWithWorld.stiffness = 1e7;
 
 			// Relaxation of the resulting ContactEquation that this ContactMaterial generate.
-    		contactMaterialWithWorld.relaxation = 3;
+			contactMaterialWithWorld.relaxation = 3;
 
-    		// Stiffness of the resulting FrictionEquation that this ContactMaterial generate.
-    		contactMaterialWithWorld.frictionStiffness = 1e7;
+			// Stiffness of the resulting FrictionEquation that this ContactMaterial generate.
+			contactMaterialWithWorld.frictionStiffness = 1e7;
 
-    		// Relaxation of the resulting FrictionEquation that this ContactMaterial generate.
-    		contactMaterialWithWorld.frictionRelaxation = 300;
+			// Relaxation of the resulting FrictionEquation that this ContactMaterial generate.
+			contactMaterialWithWorld.frictionRelaxation = 300;
 
-    		// Will add surface velocity to this material. If bodyA rests on top if bodyB, and the surface velocity is positive, bodyA will slide to the right.
-    		contactMaterialWithWorld.surfaceVelocity = 0;        
+			// Will add surface velocity to this material. If bodyA rests on top if bodyB, and the surface velocity is positive, bodyA will slide to the right.
+			contactMaterialWithWorld.surfaceVelocity = 0;        
 
-    		// And same logic to contacts between balls (I enjoy saying that)
+			// And same logic to contacts between balls (I enjoy saying that)
 			contactMaterialBetweenBalls.friction = 30;
-    		contactMaterialBetweenBalls.restitution = settings.ballProperties.bouncinessBetweenBalls;			
-    		contactMaterialBetweenBalls.stiffness = 1e7;
-    		contactMaterialBetweenBalls.relaxation = 3;
-    		contactMaterialBetweenBalls.frictionStiffness = 1e7;
-    		contactMaterialBetweenBalls.frictionRelaxation = 3;
-    		contactMaterialBetweenBalls.surfaceVelocity = 0;
+			contactMaterialBetweenBalls.restitution = settings.ballProperties.bouncinessBetweenBalls;			
+			contactMaterialBetweenBalls.stiffness = 1e7;
+			contactMaterialBetweenBalls.relaxation = 3;
+			contactMaterialBetweenBalls.frictionStiffness = 1e7;
+			contactMaterialBetweenBalls.frictionRelaxation = 3;
+			contactMaterialBetweenBalls.surfaceVelocity = 0;
 
-    		// Power represents charging when user pushes the down-button, and when released launched into the ball
-    		game.players.player1.power = { value: 0, angle: 0 };
-    		game.players.player2.power = { value: 0, angle: 0 };
-
-    		// Create power lines to balls (these indicate the launch power and direction)
-    		game.players.player1.power.line = new Phaser.Line(game.players.player1.body.x, game.players.player1.body.y, game.players.player1.body.x, game.players.player1.body.y);
-    		game.players.player1.power.line.width = 100;
-    		game.players.player1.power.line.graphics = game.add.graphics(0,0);
-    		game.players.player2.power.line = new Phaser.Line(game.players.player2.body.x, game.players.player2.body.y, game.players.player2.body.x, game.players.player2.body.y);
-    		game.players.player2.power.line.width = 100;
-    		game.players.player2.power.line.graphics = game.add.graphics(0,0);
-
-			// Bind the keys to players
-			game.players.player1.keys = {};
-			game.players.player1.keys.up = game.input.keyboard.addKey(settings.player1.keys.up);
-			game.players.player1.keys.right = game.input.keyboard.addKey(settings.player1.keys.right);
-			game.players.player1.keys.left = game.input.keyboard.addKey(settings.player1.keys.left);
-			game.players.player1.keys.down = game.input.keyboard.addKey(settings.player1.keys.down);
-			game.players.player2.keys = {};
-			game.players.player2.keys.up = game.input.keyboard.addKey(settings.player2.keys.up);
-			game.players.player2.keys.right = game.input.keyboard.addKey(settings.player2.keys.right);
-			game.players.player2.keys.left = game.input.keyboard.addKey(settings.player2.keys.left);
-			game.players.player2.keys.down = game.input.keyboard.addKey(settings.player2.keys.down);
-
+			// Bind the keys and such things to players
+			game.players.player1.applySettings();
+			game.players.player2.applySettings();
 		}
 
 		function update () {
-
-			// Logic for movement
-			if (game.players.player1.keys.left.isDown) {
-				game.players.player1.power.angle += settings.turningSpeed * -1;
-			}
-			if (game.players.player1.keys.right.isDown) {				
-				game.players.player1.power.angle += settings.turningSpeed;
-			}
-			if (game.players.player1.keys.down.isDown) {
-				game.players.player1.power.value += settings.chargeSpeed;
-				if (game.players.player1.power.value > settings.chargeMax) {
-					game.players.player1.power.value = settings.chargeMax;
-				}
-			}
-			// When down-key is relesed, apply to power to the balls movement
-			if (game.players.player1.keys.down.justUp) {
-				game.players.player1.body.velocity.x += Math.cos(game.players.player1.power.angle) * game.players.player1.power.value * 15;
-				game.players.player1.body.velocity.y += Math.sin(game.players.player1.power.angle) * game.players.player1.power.value * 15;
-				game.players.player1.power.value = 0;
-			}
-
-			if (game.players.player2.keys.left.isDown) {
-				game.players.player2.power.angle += settings.turningSpeed * -1;
-			}
-			if (game.players.player2.keys.right.isDown) {				
-				game.players.player2.power.angle += settings.turningSpeed;
-			}
-			if (game.players.player2.keys.down.isDown) {
-				game.players.player2.power.value += settings.chargeSpeed;
-				if (game.players.player2.power.value > settings.chargeMax) {
-					game.players.player2.power.value = settings.chargeMax;
-				}
-			}
-			if (game.players.player2.keys.down.justUp) {
-				game.players.player2.body.velocity.x += Math.cos(game.players.player2.power.angle) * game.players.player2.power.value * 15;
-				game.players.player2.body.velocity.y += Math.sin(game.players.player2.power.angle) * game.players.player2.power.value * 15;
-				game.players.player2.power.value = 0;
-			}
-
-			// Update the power lines
-			game.players.player1.power.line.fromAngle(game.players.player1.body.x + Math.cos(game.players.player1.power.line.angle) * 55, game.players.player1.body.y + Math.sin(game.players.player1.power.line.angle) * 55, game.players.player1.power.angle, game.players.player1.power.value);
-			game.players.player2.power.line.fromAngle(game.players.player2.body.x + Math.cos(game.players.player2.power.line.angle) * 55, game.players.player2.body.y + Math.sin(game.players.player2.power.line.angle) * 55, game.players.player2.power.angle, game.players.player2.power.value);
-
-			// Draw the graphics for the lines
-			game.players.player1.power.line.graphics.clear();
-			game.players.player1.power.line.graphics.lineStyle(10, settings.player1.powerLineColor, 1);
-			game.players.player1.power.line.graphics.moveTo(game.players.player1.power.line.start.x, game.players.player1.power.line.start.y);
-			game.players.player1.power.line.graphics.lineTo(game.players.player1.power.line.end.x, game.players.player1.power.line.end.y);
-			game.players.player2.power.line.graphics.clear();
-			game.players.player2.power.line.graphics.lineStyle(10, settings.player2.powerLineColor, 1);
-			game.players.player2.power.line.graphics.moveTo(game.players.player2.power.line.start.x, game.players.player2.power.line.start.y);
-			game.players.player2.power.line.graphics.lineTo(game.players.player2.power.line.end.x, game.players.player2.power.line.end.y);
+			game.players.player1.update();
+			game.players.player2.update();
 		}
 
 		function render() {
-
-		    //game.debug.geom(game.players.player1.power.line);
-		    //game.debug.lineInfo(game.players.player1.power.line, 32, 32);
-		    //game.debug.text(game.time.fps, 5, 15, 0x000000)
-
-		    //game.debug.geom(game.net);
-
 		}
 
 	};
