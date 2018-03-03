@@ -7,6 +7,8 @@
 	<script src="js/player.class.js"></script>
 	<script src="js/playball.class.js"></script>
 	<script src="js/scorekeeper.class.js"></script>
+	<script src="js/states/game.state.js"></script>
+
 	<style>
 		body {
 			margin: 0;
@@ -91,140 +93,16 @@
 
 		}
 
-		var game = new Phaser.Game(1280, 600, Phaser.AUTO, '', { preload: preload, create: create, update: update, render: render });
+		var game = new Phaser.Game(1280, 600, Phaser.AUTO, '', {});
 		
 		// Create players
 		game.players = [];
 		game.players.player1 = new Player('player1', game, settings);
 		game.players.player2 = new Player('player2', game, settings);
 		game.playball = new Playball('playball', game, settings);
+		game.state.add('Game',  new GameState(settings));
 
-		function preload () {
-			game.players.player1.preload();
-			game.players.player2.preload();
-			game.playball.preload();
-
-			// Scale the game
-			// Makes the canvas as big as it can get on current screen
-			game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
-		}
-
-		function create () {
-			game.stage.backgroundColor = "#F0F0F0";
-
-			//game.time.advancedTiming = true;
-			//game.time.desiredFps = 60;
-
-			game.physics.startSystem(Phaser.Physics.P2JS);
-
-			//  Set the world (global) gravity
-			game.physics.p2.gravity.y = 200;
-			
-			// Create player sprites
-			game.players.player1.createSprite(game.world.centerX / 4, game.world.centerY);
-			game.players.player2.createSprite(game.world.centerX * 1.75, game.world.centerY);
-
-			// And create the playing ball sprite
-			game.playball.createSprite(game.world.centerX, game.world.centerY);
-
-			// Create the net, we add this as a "invisible sprite", sprite is needed
-			// for collisions
-			// Logic for Y-location is bit complicated, since the coordinate it sets is the center of the sprite...
-			game.net = game.add.sprite(game.world.centerX, (game.world.height - settings.net.height) + settings.net.height / 2, null);
-
-			// Apply physics to players
-			game.physics.p2.enable( [ game.playball, game.net]);
-			game.physics.p2.boundsCollideWith = [ game.players.player1.sprite, game.players.player2.sprite, game.playball];
-
-			// Make net to stay where it is
-			game.net.body.static = true;
-
-			// Create a collision rectangle for net
-			game.net.body.setRectangle(settings.net.width, settings.net.height, 0, 0);
-
-			// Finally draw the net, so it is actually visible
-			game.net.graphics = game.add.graphics(0, 0);
-			game.net.graphics.beginFill(0x000000, 0.5);
-			game.net.graphics.drawRect(game.net.body.x - settings.net.width / 2, game.net.body.y - settings.net.height / 2, settings.net.width, settings.net.height);
-			game.net.graphics.endFill();
-
-			// Create materials, which define how the interaction between these sprites occcur (friction, bounciness etc)
-			// @TODO make a class or atleast function to handle the material creatings, now it takes more than half of the code in
-			// Main create class!
-			var ballMaterial = game.physics.p2.createMaterial('spriteMaterial', game.players.player1.sprite.body);
-			var worldMaterial = game.physics.p2.createMaterial('worldMaterial');
-			game.physics.p2.setWorldMaterial(worldMaterial, true, true, true, true);
-
-			// Apply materials to other balls as well
-			game.players.player2.sprite.body.setMaterial(ballMaterial);
-			game.playball.sprite.body.setMaterial(ballMaterial);
-
-			// Apply world material to net
-			game.net.body.setMaterial(worldMaterial);
-
-			// Contact materials
-			var contactMaterialWithWorld = game.physics.p2.createContactMaterial(ballMaterial, worldMaterial);
-			var contactMaterialBetweenBalls = game.physics.p2.createContactMaterial(ballMaterial, ballMaterial);
-
-			// Friction to use in the contact of these two materials.
-			contactMaterialWithWorld.friction = 5;
-
-			// Restitution (i.e. how bouncy it is!) to use in the contact of these two materials.
-			contactMaterialWithWorld.restitution = settings.ballProperties.bouncinessWithWorld;  
-
-			// Stiffness of the resulting ContactEquation that this ContactMaterial generate.
-			contactMaterialWithWorld.stiffness = 1e7;
-
-			// Relaxation of the resulting ContactEquation that this ContactMaterial generate.
-			contactMaterialWithWorld.relaxation = 3;
-
-			// Stiffness of the resulting FrictionEquation that this ContactMaterial generate.
-			contactMaterialWithWorld.frictionStiffness = 1e7;
-
-			// Relaxation of the resulting FrictionEquation that this ContactMaterial generate.
-			contactMaterialWithWorld.frictionRelaxation = 300;
-
-			// Will add surface velocity to this material. If bodyA rests on top if bodyB, and the surface velocity is positive, bodyA will slide to the right.
-			contactMaterialWithWorld.surfaceVelocity = 0;        
-
-			// And same logic to contacts between balls (I enjoy saying that)
-			contactMaterialBetweenBalls.friction = 30;
-			contactMaterialBetweenBalls.restitution = settings.ballProperties.bouncinessBetweenBalls;			
-			contactMaterialBetweenBalls.stiffness = 1e7;
-			contactMaterialBetweenBalls.relaxation = 3;
-			contactMaterialBetweenBalls.frictionStiffness = 1e7;
-			contactMaterialBetweenBalls.frictionRelaxation = 3;
-			contactMaterialBetweenBalls.surfaceVelocity = 0;
-
-			// Bind the keys and such things to players and playball
-			game.players.player1.applySettings();
-			game.players.player2.applySettings();
-			game.playball.applySettings();
-
-			// This keeps track of the score (and draws it for now atleast)
-			game.scorekeeper = new ScoreKeeper(game.playball, game, settings);
-		}
-
-		function resetPositions() {
-			this.player1.sprite.body.x = game.world.centerX / 4;
-			this.player1.sprite.body.y = game.world.centerY;
-			this.player2.sprite.boxy.x = game.world.centerX * 1.75;
-			this.player2.sprite.body.y = game.world.centerY;
-			this.playball.sprite.body.x = game.world.centerX;
-			this.playball.sprite.body.y = game.world.centerY;
-			this.game.playball.sprite.body.velocity.y = -350;
-		}
-
-		function update () {
-			game.players.player1.update();
-			game.players.player2.update();
-			game.scorekeeper.update();
-		}
-
-		function render() {
-    		//game.debug.spriteInfo(game.playball.sprite, 32, 32);
-    		//game.debug.text("Bottom: " + game.playball.sprite.bottom, 150, 150);
-		}
+		game.state.start('Game');
 
 	};
 

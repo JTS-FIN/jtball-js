@@ -15,6 +15,7 @@ class ScoreKeeper {
 		this.player2.text.setTextBounds(this.game.world.width - 150, 25, 150, 50);
 		console.log("World height" + this.game.world.height);
 		console.log("Playball bottom" + this.playball.sprite.bottom);
+		console.log(this.game.state.states);
 	}
 
 	update() {
@@ -23,11 +24,13 @@ class ScoreKeeper {
 				this.player2.score += 1;
 				this.player2.text.text = this.player2.score;
 				this.player2.text.update();
+				this.game.state.states.Game.resetPositions();
 			}
 			if (this.playball.sprite.body.x > this.game.world.centerX) {
 				this.player1.score += 1;
 				this.player1.text.text = this.player1.score;
 				this.player1.text.update();
+				this.game.state.states.Game.resetPositions();
 			}
 		}
 	}
