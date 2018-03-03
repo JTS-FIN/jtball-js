@@ -40,15 +40,43 @@ class GameState {
 		// Logic for Y-location is bit complicated, since the coordinate it sets is the center of the sprite...
 		this.game.net = this.game.add.sprite(this.game.world.centerX, (this.game.world.height - this.settings.net.height) + this.settings.net.height / 2, null);
 
-		// Apply physics to players
-		this.game.physics.p2.enable( [ this.game.playball, this.game.net]);
-		this.game.physics.p2.boundsCollideWith = [ this.game.players.player1.sprite, this.game.players.player2.sprite, this.game.playball];
+		// This restricts players to their own sides of the play area
+		this.game.playareaRestrictor = this.game.add.sprite(this.game.world.centerX, this.game.world.centerY, null);
 
-		// Make net to stay where it is
-		this.game.net.body.static = true;
+		// Apply physics to objects
+		this.game.physics.p2.enable( [ this.game.net, this.game.playareaRestrictor]);
 
-		// Create a collision rectangle for net
+		// Create a collision rectangles
+		this.game.playareaRestrictor.body.setRectangle(this.settings.net.width, this.game.world.height, 0, 0);
 		this.game.net.body.setRectangle(this.settings.net.width, this.settings.net.height, 0, 0);
+
+		// Players group
+		var playerCollisionGroup = this.game.physics.p2.createCollisionGroup();
+		// Playarearestrictor
+		var playareaRestrictorCollisionGroup = this.game.physics.p2.createCollisionGroup();
+		// Contains playball and net
+		var gameObjectCollisionGroup = this.game.physics.p2.createCollisionGroup(); 
+
+		// Make net and restrictor to stay where it is
+		this.game.net.body.static = true;
+		this.game.playareaRestrictor.body.static = true;
+
+		this.game.playareaRestrictor.body.setCollisionGroup(playareaRestrictorCollisionGroup);
+		this.game.players.player1.sprite.body.setCollisionGroup(playerCollisionGroup);
+		this.game.players.player2.sprite.body.setCollisionGroup(playerCollisionGroup);
+		this.game.playball.sprite.body.setCollisionGroup(gameObjectCollisionGroup);
+		this.game.net.body.setCollisionGroup(gameObjectCollisionGroup);
+
+		// Define what collides with what
+		this.game.playareaRestrictor.body.collides([playareaRestrictorCollisionGroup, playerCollisionGroup]);
+		this.game.players.player1.sprite.body.collides([playareaRestrictorCollisionGroup, playerCollisionGroup, gameObjectCollisionGroup]);
+		this.game.players.player2.sprite.body.collides([playareaRestrictorCollisionGroup, playerCollisionGroup, gameObjectCollisionGroup]);
+		this.game.playball.sprite.body.collides([playerCollisionGroup, gameObjectCollisionGroup]);
+		this.game.net.body.collides([gameObjectCollisionGroup]);
+
+		// These objects collide with the world limits
+		this.game.physics.p2.boundsCollideWith = [ this.game.players.player1.sprite, this.game.players.player2.sprite, this.game.playball];
+		this.game.physics.p2.updateBoundsCollisionGroup();
 
 		// Finally draw the net, so it is actually visible
 		this.game.net.graphics = this.game.add.graphics(0, 0);
@@ -69,6 +97,8 @@ class GameState {
 
 		// Apply world material to net
 		this.game.net.body.setMaterial(worldMaterial);
+		this.game.playareaRestrictor.body.setMaterial(worldMaterial);
+
 
 		// Contact materials
 		var contactMaterialWithWorld = this.game.physics.p2.createContactMaterial(ballMaterial, worldMaterial);
