@@ -12,11 +12,9 @@ class Player {
 
 	preload() {
 		this.game.load.image(this.name, this.settings[this.name].image);
-		console.log(this.name);
 	}
 
 	createSprite(coordX, coordY) {
-
 		// Create sprite (name should match image loaded before creating this object)
 		this.sprite = this.game.add.sprite(coordX, coordY, this.name);
 		this.sprite.anchor.setTo(0.5, 0.5);

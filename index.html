@@ -5,6 +5,8 @@
 	<title>JTball</title>
 	<script src="js/phaser.min.js"></script>
 	<script src="js/player.class.js"></script>
+	<script src="js/playball.class.js"></script>
+	<script src="js/scorekeeper.class.js"></script>
 	<style>
 		body {
 			margin: 0;
@@ -53,12 +55,17 @@
 
 			},
 
+			playball: {
+
+				image: 'images/playball.png',
+
+			},
+
 			ballProperties: {
 
 				mass: 10,
 				bouncinessBetweenBalls: 0.95,
 				bouncinessWithWorld: 0.9,
-				image: 'images/playball.png',
 
 			},
 
@@ -66,6 +73,15 @@
 
 				width: 20,
 				height: 250,
+
+			},
+
+			scoreTextStyle: {
+
+				font: "bold 32px Arial", 
+				fill: "#000", 
+				boundsAlignH: "center", 
+				boundsAlignV: "middle" ,
 
 			},
 
@@ -81,11 +97,12 @@
 		game.players = [];
 		game.players.player1 = new Player('player1', game, settings);
 		game.players.player2 = new Player('player2', game, settings);
+		game.playball = new Playball('playball', game, settings);
 
 		function preload () {
-			game.load.image('playball', settings.ballProperties.image);
 			game.players.player1.preload();
 			game.players.player2.preload();
+			game.playball.preload();
 
 			// Scale the game
 			// Makes the canvas as big as it can get on current screen
@@ -95,18 +112,20 @@
 		function create () {
 			game.stage.backgroundColor = "#F0F0F0";
 
+			//game.time.advancedTiming = true;
+			//game.time.desiredFps = 60;
+
 			game.physics.startSystem(Phaser.Physics.P2JS);
 
 			//  Set the world (global) gravity
 			game.physics.p2.gravity.y = 200;
 			
+			// Create player sprites
 			game.players.player1.createSprite(game.world.centerX / 4, game.world.centerY);
 			game.players.player2.createSprite(game.world.centerX * 1.75, game.world.centerY);
 
-			// And create the playing ball
-			game.playball = game.add.sprite(game.world.centerX, game.world.centerY, 'playball');
-			game.playball.anchor.setTo(0.5, 0.5);
-			game.playball.scale.set(0.5, 0.5);
+			// And create the playing ball sprite
+			game.playball.createSprite(game.world.centerX, game.world.centerY);
 
 			// Create the net, we add this as a "invisible sprite", sprite is needed
 			// for collisions
@@ -125,18 +144,9 @@
 
 			// Finally draw the net, so it is actually visible
 			game.net.graphics = game.add.graphics(0, 0);
-			//game.net.graphics.lineStyle(2, 0x0000FF, 1);
 			game.net.graphics.beginFill(0x000000, 0.5);
 			game.net.graphics.drawRect(game.net.body.x - settings.net.width / 2, game.net.body.y - settings.net.height / 2, settings.net.width, settings.net.height);
 			game.net.graphics.endFill();
-
-			// By default the Body is a rectangle. Let's turn it into a circle with a radius in pixels		
-			game.playball.body.setCircle(55);
-
-			game.playball.body.mass = settings.ballProperties.mass;
-
-			// Add velocity to the playball
-			game.playball.body.velocity.y = -350;
 
 			// Create materials, which define how the interaction between these sprites occcur (friction, bounciness etc)
 			// @TODO make a class or atleast function to handle the material creatings, now it takes more than half of the code in
@@ -147,7 +157,7 @@
 
 			// Apply materials to other balls as well
 			game.players.player2.sprite.body.setMaterial(ballMaterial);
-			game.playball.body.setMaterial(ballMaterial);
+			game.playball.sprite.body.setMaterial(ballMaterial);
 
 			// Apply world material to net
 			game.net.body.setMaterial(worldMaterial);
@@ -186,17 +196,34 @@
 			contactMaterialBetweenBalls.frictionRelaxation = 3;
 			contactMaterialBetweenBalls.surfaceVelocity = 0;
 
-			// Bind the keys and such things to players
+			// Bind the keys and such things to players and playball
 			game.players.player1.applySettings();
 			game.players.player2.applySettings();
+			game.playball.applySettings();
+
+			// This keeps track of the score (and draws it for now atleast)
+			game.scorekeeper = new ScoreKeeper(game.playball, game, settings);
+		}
+
+		function resetPositions() {
+			this.player1.sprite.body.x = game.world.centerX / 4;
+			this.player1.sprite.body.y = game.world.centerY;
+			this.player2.sprite.boxy.x = game.world.centerX * 1.75;
+			this.player2.sprite.body.y = game.world.centerY;
+			this.playball.sprite.body.x = game.world.centerX;
+			this.playball.sprite.body.y = game.world.centerY;
+			this.game.playball.sprite.body.velocity.y = -350;
 		}
 
 		function update () {
 			game.players.player1.update();
 			game.players.player2.update();
+			game.scorekeeper.update();
 		}
 
 		function render() {
+    		//game.debug.spriteInfo(game.playball.sprite, 32, 32);
+    		//game.debug.text("Bottom: " + game.playball.sprite.bottom, 150, 150);
 		}
 
 	};
