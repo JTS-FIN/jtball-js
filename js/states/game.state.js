@@ -145,12 +145,12 @@ class GameState {
 
 	resetPositions() {
 		this.game.players.player1.sprite.body.x = this.game.world.centerX / 4;
-		this.game.players.player1.sprite.body.y = this.game.world.centerY;
+		this.game.players.player1.sprite.body.y = this.game.world.height - 55;
 		this.game.players.player1.sprite.body.velocity.x = this.game.players.player1.sprite.body.velocity.y = 0;
 		this.game.players.player1.sprite.body.setZeroRotation();
 
 		this.game.players.player2.sprite.body.x = this.game.world.centerX * 1.75;
-		this.game.players.player2.sprite.body.y = this.game.world.centerY;
+		this.game.players.player2.sprite.body.y = this.game.world.height - 55;
 		this.game.players.player2.sprite.body.velocity.x = this.game.players.player2.sprite.body.velocity.y = 0;
 		this.game.players.player2.sprite.body.setZeroRotation();
 
