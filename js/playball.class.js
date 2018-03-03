@@ -9,7 +9,6 @@ class Playball {
 
 	preload() {
 		this.game.load.image(this.name, this.settings[this.name].image);
-		console.log("IMage name: " + this.settings[this.name].image);
 	}
 
 	createSprite(coordX, coordY) {

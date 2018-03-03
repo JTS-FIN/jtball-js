@@ -52,23 +52,79 @@ class Player {
 			return this.aiUpdate();
 		}
 
-		if (this.keys.left.isDown) {
-			this.power.angle += this.settings.turningSpeed * -1;
+		var onGround = false;
+		if (this.sprite.bottom > (this.game.world.height - 2)) {
+			onGround = true;
 		}
-		if (this.keys.right.isDown) {				
-			this.power.angle += this.settings.turningSpeed;
+
+		// We are not charging the strike, so we can actually move with left and right buttons
+		if (this.power.value === 0) {
+			if (onGround) {
+				this.sprite.body.velocity.y = 5;
+			}
+			if (this.keys.left.isDown) {
+				if (onGround === true) {
+					// if we move already faster to this direction, we dont slow down with this
+					// So only apply when we are moving slower to left than this
+					if (this.sprite.body.velocity.x > this.settings.groundMovingSpeed * -1) {
+						this.sprite.body.velocity.x = this.settings.groundMovingSpeed * -1;
+					}
+				}
+				else {
+					if (this.sprite.body.velocity.x > this.settings.airMovingSpeed * -1) {
+						this.sprite.body.velocity.x = this.settings.airMovingSpeed * -1;
+					}
+				}
+			}
+			else if (this.keys.right.isDown) {
+				if (onGround === true) {
+					if (this.sprite.body.velocity.x < this.settings.groundMovingSpeed ) {
+						this.sprite.body.velocity.x = this.settings.groundMovingSpeed;
+					}
+					
+				}
+				else {
+					if (this.sprite.body.velocity.x < this.settings.airMovingSpeed ) {
+						this.sprite.body.velocity.x = this.settings.airMovingSpeed;
+					}
+				}
+			}
+			else if (onGround === true) {
+				// We are emulating friction with ground, since the actual material friction doesnt
+				// seem to work with rolling...
+				this.sprite.body.velocity.x *= 0.9;
+			}
 		}
-		if (this.keys.down.isDown) {
+
+		// We are charging the strike
+		if (this.power.value > 0) {
+			if (this.keys.right.isDown) {				
+				this.power.angle += this.settings.turningSpeed;
+			}
+
+			if (this.keys.left.isDown) {
+				this.power.angle += this.settings.turningSpeed * -1;
+			}
+			if (this.keys.right.isDown) {				
+				this.power.angle += this.settings.turningSpeed;
+			}
+		}
+
+		if (this.keys.down.isDown && onGround === true) {
+			// We stop the moving, seems to be more fun play that way
+			this.sprite.body.velocity.x = 0;
 			this.power.value += this.settings.chargeSpeed;
 			if (this.power.value > this.settings.chargeMax) {
 				this.power.value = this.settings.chargeMax;
 			}
+			this.game.physics.p2.pause();
 		}
 		// When down-key is relesed, apply to power to the balls movement
 		if (this.keys.down.justUp) {
 			this.sprite.body.velocity.x += Math.cos(this.power.angle) * this.power.value * 15;
 			this.sprite.body.velocity.y += Math.sin(this.power.angle) * this.power.value * 15;
 			this.power.value = 0;
+			this.game.physics.p2.resume();
 		}
 
 		// Update the power lines
@@ -82,8 +138,13 @@ class Player {
 	}
 
 	aiUpdate() {
+		// What is the angle towards the playball
 		var angleToPlayball = Math.atan2(this.game.playball.sprite.body.y - this.sprite.body.y, this.game.playball.sprite.body.x - this.sprite.body.x);
 
+		// Please dont ask how this works. This is stack overflow coding, I have
+		// no idea about logic behind this, i just know this works
+		// But however, we determine which way we want to turn the power/charging line
+		// and that is towards the play ball
 		var angleOffset = angleToPlayball - this.power.angle;
 		if (angleOffset > Math.PI) {
 			angleOffset -= 2 * Math.PI;
@@ -91,20 +152,12 @@ class Player {
 		if (angleOffset < Math.PI * -1) {
 			angleOffset += 2 * Math.PI;
 		}
-		this.game.debug.text('angleOffset: ' + angleOffset, 45, 85);
-		this.game.debug.text('angletoplayball: ' + angleToPlayball, 45, 65);
-		this.game.debug.text("P2 p angle: " + (this.power.angle % Math.PI), 45, 32);
-
-		var reverse = 1;
-		if (angleOffset > Math.PI) {
-			//reverse = -1;
-		}
 
 		if (angleOffset < 0) {
-			this.power.angle += this.settings.turningSpeed * -1 * reverse;
+			this.power.angle += this.settings.turningSpeed * -1;
 		}
 		if (angleOffset > 0) {				
-			this.power.angle += this.settings.turningSpeed * reverse;
+			this.power.angle += this.settings.turningSpeed;
 		}
 		
 		this.power.value += this.settings.chargeSpeed;

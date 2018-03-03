@@ -13,9 +13,6 @@ class ScoreKeeper {
 		this.player1.text.setTextBounds(0, 25, 150, 50);
 		this.player2.text = this.game.add.text(0, 0, this.player2.score, this.settings.scoreTextStyle);
 		this.player2.text.setTextBounds(this.game.world.width - 150, 25, 150, 50);
-		console.log("World height" + this.game.world.height);
-		console.log("Playball bottom" + this.playball.sprite.bottom);
-		console.log(this.game.state.states);
 	}
 
 	update() {

@@ -26,11 +26,11 @@ class GameState {
 		this.game.physics.startSystem(Phaser.Physics.P2JS);
 
 		//  Set the world (global) gravity
-		this.game.physics.p2.gravity.y = 200;
+		this.game.physics.p2.gravity.y = this.settings.gravity;
 		
 		// Create player sprites
-		this.game.players.player1.createSprite(this.game.world.centerX / 4, this.game.world.centerY);
-		this.game.players.player2.createSprite(this.game.world.centerX * 1.75, this.game.world.centerY);
+		this.game.players.player1.createSprite(this.game.world.centerX / 4, this.game.world.height - 55);
+		this.game.players.player2.createSprite(this.game.world.centerX * 1.75, this.game.world.height - 55);
 
 		// And create the playing ball sprite
 		this.game.playball.createSprite(this.game.world.centerX, this.game.world.centerY);
