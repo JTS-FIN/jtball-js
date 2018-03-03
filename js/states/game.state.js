@@ -20,8 +20,8 @@ class GameState {
 	create() {
 		this.game.stage.backgroundColor = "#F0F0F0";
 
-		//this.game.time.advancedTiming = true;
-		//this.game.time.desiredFps = 60;
+		this.game.time.advancedTiming = true;
+		this.game.time.desiredFps = 60;
 
 		this.game.physics.startSystem(Phaser.Physics.P2JS);
 
@@ -170,5 +170,7 @@ class GameState {
 	render() {
 		//this.game.debug.spriteInfo(this.game.playball.sprite, 32, 32);
 		//this.game.debug.text("Bottom: " + this.game.playball.sprite.bottom, 150, 150);
+		//this.game.debug.geom(this.game.players.player2.power.line, 'rgba(255,0,0,1)' ) ;
+		this.game.players.player2.render();
 	}
 }

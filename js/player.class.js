@@ -44,9 +44,14 @@ class Player {
 
 		// Apply mass
 		this.sprite.body.mass = this.settings.ballProperties.mass;
+		this.aiControlled = this.settings[this.name].aiControlled;
 	}
 
 	update() {
+		if(this.aiControlled === true) {
+			return this.aiUpdate();
+		}
+
 		if (this.keys.left.isDown) {
 			this.power.angle += this.settings.turningSpeed * -1;
 		}
@@ -76,4 +81,54 @@ class Player {
 		this.power.line.graphics.lineTo(this.power.line.end.x, this.power.line.end.y);
 	}
 
+	aiUpdate() {
+		var angleToPlayball = Math.atan2(this.game.playball.sprite.body.y - this.sprite.body.y, this.game.playball.sprite.body.x - this.sprite.body.x);
+
+		var angleOffset = angleToPlayball - this.power.angle;
+		if (angleOffset > Math.PI) {
+			angleOffset -= 2 * Math.PI;
+		}
+		if (angleOffset < Math.PI * -1) {
+			angleOffset += 2 * Math.PI;
+		}
+		this.game.debug.text('angleOffset: ' + angleOffset, 45, 85);
+		this.game.debug.text('angletoplayball: ' + angleToPlayball, 45, 65);
+		this.game.debug.text("P2 p angle: " + (this.power.angle % Math.PI), 45, 32);
+
+		var reverse = 1;
+		if (angleOffset > Math.PI) {
+			//reverse = -1;
+		}
+
+		if (angleOffset < 0) {
+			this.power.angle += this.settings.turningSpeed * -1 * reverse;
+		}
+		if (angleOffset > 0) {				
+			this.power.angle += this.settings.turningSpeed * reverse;
+		}
+		
+		this.power.value += this.settings.chargeSpeed;
+		if (this.power.value > this.settings.chargeMax) {
+			this.power.value = this.settings.chargeMax;
+		}
+		
+		// When down-key is relesed, apply to power to the balls movement
+		if (this.game.playball.sprite.body.x > this.game.world.centerX && this.power.value === this.settings.chargeMax) {
+			this.sprite.body.velocity.x += Math.cos(this.power.angle) * this.power.value * 15;
+			this.sprite.body.velocity.y += Math.sin(this.power.angle) * this.power.value * 15;
+			this.power.value = 0;
+		}
+
+		// Update the power lines
+		this.power.line.fromAngle(this.sprite.body.x + Math.cos(this.power.line.angle) * 55, this.sprite.body.y + Math.sin(this.power.line.angle) * 55, this.power.angle, this.power.value);
+
+		// Draw the graphics for the lines
+		this.power.line.graphics.clear();
+		this.power.line.graphics.lineStyle(10, this.settings[this.name].powerLineColor, 1);
+		this.power.line.graphics.moveTo(this.power.line.start.x, this.power.line.start.y);
+		this.power.line.graphics.lineTo(this.power.line.end.x, this.power.line.end.y);
+	}
+
+	render() {
+	}
 }
