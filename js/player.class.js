@@ -138,8 +138,36 @@ class Player {
 	}
 
 	aiUpdate() {
-		// What is the angle towards the playball
-		var angleToPlayball = Math.atan2(this.game.playball.sprite.body.y - this.sprite.body.y, this.game.playball.sprite.body.x - this.sprite.body.x);
+		var playballBody = this.game.playball.sprite.body;
+
+		// Distance to playball
+		var distance = Math.sqrt( Math.pow(playballBody.x - this.sprite.body.x, 2) + Math.pow(playballBody.y - this.sprite.body.y, 2));
+
+		// If ball is on the enemy side, we move to the "ready up"-position
+		var distanceX = this.sprite.body.x - (this.game.world.centerX + this.game.world.centerX * 0.5);
+		
+		if (this.settings.debug.ai === true) {
+			this.game.debug.text("Distance to AI: " + distance, 85, 25, { fill: '#FF0000;' });
+			this.game.debug.text("Playball speed: " + playballBody.velocity.x + " - " + playballBody.velocity.y, 85, 35, { fill: '#FF0000;' });
+		}
+
+		var ballIsOnMySide = false;
+		if (this.game.playball.sprite.body.x > this.game.world.centerX) {
+			ballIsOnMySide = true;
+			// We try to move below the ball if ball is on our side of the play area
+			distanceX = this.sprite.body.x - this.game.playball.sprite.body.x;;
+		}
+
+		// Where playball will be when we want to hit it
+		var playballXPrediction = this.game.playball.sprite.body.x + (75 + playballBody.velocity.x * 0.15 * (distance / (this.settings.chargeMax * 3) ));
+
+		// What is the angle towards the point we aim the strike
+		var angleToPlayball = Math.atan2(this.game.playball.sprite.body.y - this.sprite.body.y, playballXPrediction - this.sprite.body.x);
+
+		var onGround = false;
+		if (this.sprite.bottom > (this.game.world.height - 2)) {
+			onGround = true;
+		}
 
 		// Please dont ask how this works. This is stack overflow coding, I have
 		// no idea about logic behind this, i just know this works
@@ -154,32 +182,75 @@ class Player {
 		}
 
 		if (angleOffset < 0) {
-			this.power.angle += this.settings.turningSpeed * -1;
+			this.power.angle += this.settings.turningSpeed * 3 * -1;
 		}
 		if (angleOffset > 0) {				
-			this.power.angle += this.settings.turningSpeed;
+			this.power.angle += this.settings.turningSpeed * 3;
 		}
 		
+		// We are not charging the strike, so we can actually move with left and right buttons
+		if (onGround) {
+			this.sprite.body.velocity.y = 5;
+		}
+		//if (distanceX < 30 && distanceX >)
+		// Move left
+		if (distanceX > 15) {
+			if (onGround === true) {
+				// if we move already faster to this direction, we dont slow down with this
+				// So only apply when we are moving slower to left than this
+				if (this.sprite.body.velocity.x > this.settings.groundMovingSpeed * -1) {
+					this.sprite.body.velocity.x = this.settings.groundMovingSpeed * -1;
+				}
+			}
+			else {
+				if (this.sprite.body.velocity.x > this.settings.airMovingSpeed * -1) {
+					//this.sprite.body.velocity.x = this.settings.airMovingSpeed * -1;
+				}
+			}
+		}
+		// Move right
+		else if (distanceX < -15) {
+			if (onGround === true) {
+				if (this.sprite.body.velocity.x < this.settings.groundMovingSpeed ) {
+					this.sprite.body.velocity.x = this.settings.groundMovingSpeed;
+				}
+				
+			}
+			else {
+				if (this.sprite.body.velocity.x < this.settings.airMovingSpeed ) {
+					//this.sprite.body.velocity.x = this.settings.airMovingSpeed;
+				}
+			}
+		}
+		else if (onGround === true) {
+			// We are emulating friction with ground, since the actual material friction doesnt
+			// seem to work with rolling...
+			this.sprite.body.velocity.x *= 0.9;
+		}
+
 		this.power.value += this.settings.chargeSpeed;
 		if (this.power.value > this.settings.chargeMax) {
 			this.power.value = this.settings.chargeMax;
 		}
 		
 		// When down-key is relesed, apply to power to the balls movement
-		if (this.game.playball.sprite.body.x > this.game.world.centerX && this.power.value === this.settings.chargeMax) {
+		if (this.game.playball.sprite.body.x > this.game.world.centerX && this.power.value === this.settings.chargeMax && distance < 250 && onGround === true) {
 			this.sprite.body.velocity.x += Math.cos(this.power.angle) * this.power.value * 15;
 			this.sprite.body.velocity.y += Math.sin(this.power.angle) * this.power.value * 15;
 			this.power.value = 0;
 		}
 
 		// Update the power lines
-		this.power.line.fromAngle(this.sprite.body.x + Math.cos(this.power.line.angle) * 55, this.sprite.body.y + Math.sin(this.power.line.angle) * 55, this.power.angle, this.power.value);
+		this.power.line.fromAngle(this.sprite.body.x + Math.cos(this.power.line.angle) * 55, this.sprite.body.y + Math.sin(this.power.line.angle) * 55, this.power.angle, 500);
 
-		// Draw the graphics for the lines
-		this.power.line.graphics.clear();
-		this.power.line.graphics.lineStyle(10, this.settings[this.name].powerLineColor, 1);
-		this.power.line.graphics.moveTo(this.power.line.start.x, this.power.line.start.y);
-		this.power.line.graphics.lineTo(this.power.line.end.x, this.power.line.end.y);
+
+		if (this.settings.debug.ai === true) {
+			// Draw the graphics for the lines
+			this.power.line.graphics.clear();
+			this.power.line.graphics.lineStyle(1, this.settings[this.name].powerLineColor, 1);
+			this.power.line.graphics.moveTo(this.power.line.start.x, this.power.line.start.y);
+			this.power.line.graphics.lineTo(this.power.line.end.x, this.power.line.end.y);
+		}
 	}
 
 	render() {
