@@ -31,9 +31,6 @@ class GameState {
 
 		//  Set the world (global) gravity
 		this.game.physics.p2.gravity.y = this.settings.gravity;
-
-		// Touch input/mouse
-		this.game.input.addPointer();
 		
 		// Create player sprites
 		this.game.players.player1.createSprite(this.game.world.centerX / 4, this.game.world.height - 55);
@@ -189,7 +186,8 @@ class GameState {
 				color: 'auto',
 			  });
 		}
-		//this.game.debug.pointer(this.game.input.activePointer);
-
+		if (this.settings.debug.pointer) {
+			this.game.debug.pointer(this.game.input.activePointer);
+		}
 	}
 }

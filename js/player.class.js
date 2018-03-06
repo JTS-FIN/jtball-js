@@ -55,12 +55,13 @@ class Player {
 		var onGround = false;
 		if (this.sprite.bottom > (this.game.world.height - 2)) {
 			onGround = true;
+			this.sprite.body.velocity.y = 0;
 		}
 
 		// We are not charging the strike, so we can actually move with left and right buttons
 		if (this.power.value === 0) {
 			if (onGround) {
-				this.sprite.body.velocity.y = 5;
+				this.sprite.body.velocity.y = 0;
 			}
 			if (this.keys.left.isDown || (this.game.input.activePointer.isDown && this.game.input.activePointer.x < this.sprite.body.x)) {
 				if (onGround === true) {
@@ -99,7 +100,7 @@ class Player {
 		// We are charging the strike
 		if (this.power.value > 0) {
 			if (this.game.input.activePointer.isDown) {
-				this.power.angle = Math.atan2(this.game.input.activePointer.y - this.sprite.body.y, this.game.input.activePointer.x - this.sprite.body.x)
+				this.power.angle = Math.atan2(this.game.input.activePointer.position.y - this.sprite.body.y, this.game.input.activePointer.position.x - this.sprite.body.x)
 			}
 			else {
 				if (this.keys.left.isDown) {
@@ -112,9 +113,9 @@ class Player {
 		}
 
 		// Charging the strike, if we press keydown, or press pointer in the higher than 3rd of the height of the game
-		if (this.keys.down.isDown
+		if ((this.keys.down.isDown
 			  || (this.game.input.activePointer.isDown && this.game.input.activePointer.y < this.game.world.height * 0.66)
-			  || (this.power.value > 0 && this.game.input.activePointer.isDown === true) 
+			  || (this.power.value > 0 && this.game.input.activePointer.isDown === true))
 			  && onGround === true) {
 			// We stop the moving, seems to be more fun play that way
 			//this.sprite.body.velocity.x = 0;
@@ -129,7 +130,6 @@ class Player {
 			this.sprite.body.velocity.x += Math.cos(this.power.angle) * this.power.value * 15;
 			this.sprite.body.velocity.y += Math.sin(this.power.angle) * this.power.value * 15;
 			this.power.value = 0;
-			this.game.physics.p2.resume();
 			this.game.time.slowMotion = 1;
 		}
 
