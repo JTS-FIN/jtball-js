@@ -63,44 +63,70 @@ class Player {
 			if (onGround) {
 				this.sprite.body.velocity.y = 0;
 			}
-			if (this.keys.left.isDown || (this.game.input.activePointer.isDown && this.game.input.activePointer.x < this.sprite.body.x)) {
+			// If automove is enabled, AI will move the ball always towards beneath the playball
+			if (this.settings[this.name].autoMove === true) {
+
+				// If ball is on the enemy side, we move to the "ready up"-position
+				var distanceX = this.sprite.body.x - (this.game.world.centerX - this.game.world.centerX * 0.5);
+
+				if (this.game.playball.sprite.body.x < this.game.world.centerX) {
+					// We try to move below the ball if ball is on our side of the play area
+					distanceX = this.sprite.body.x - this.game.playball.sprite.body.x;
+				}
+
+				// Move only if on the ground
 				if (onGround === true) {
-					// if we move already faster to this direction, we dont slow down with this
-					// So only apply when we are moving slower to left than this
-					if (this.sprite.body.velocity.x > this.settings.groundMovingSpeed * -1) {
+					if (distanceX > 15) {
 						this.sprite.body.velocity.x = this.settings.groundMovingSpeed * -1;
 					}
-				}
-				else {
-					if (this.sprite.body.velocity.x > this.settings.airMovingSpeed * -1) {
-						this.sprite.body.velocity.x = this.settings.airMovingSpeed * -1;
+					else if (distanceX < -15) {
+						this.sprite.body.velocity.x = this.settings.groundMovingSpeed * 1;
+					}
+					else {
+						this.sprite.body.velocity.x = 0;
 					}
 				}
 			}
-			else if (this.keys.right.isDown || (this.game.input.activePointer.isDown && this.game.input.activePointer.x > this.sprite.body.x)) {
-				if (onGround === true) {
-					if (this.sprite.body.velocity.x < this.settings.groundMovingSpeed ) {
-						this.sprite.body.velocity.x = this.settings.groundMovingSpeed;
+			else {
+				if (this.keys.left.isDown || (this.game.input.activePointer.isDown && this.game.input.activePointer.x < this.sprite.body.x)) {
+					if (onGround === true) {
+						// if we move already faster to this direction, we dont slow down with this
+						// So only apply when we are moving slower to left than this
+						if (this.sprite.body.velocity.x > this.settings.groundMovingSpeed * -1) {
+							this.sprite.body.velocity.x = this.settings.groundMovingSpeed * -1;
+						}
 					}
-					
-				}
-				else {
-					if (this.sprite.body.velocity.x < this.settings.airMovingSpeed ) {
-						this.sprite.body.velocity.x = this.settings.airMovingSpeed;
+					else {
+						if (this.sprite.body.velocity.x > this.settings.airMovingSpeed * -1) {
+							this.sprite.body.velocity.x = this.settings.airMovingSpeed * -1;
+						}
 					}
 				}
-			}
-			else if (onGround === true) {
-				// We are emulating friction with ground, since the actual material friction doesnt
-				// seem to work with rolling...
-				this.sprite.body.velocity.x *= 0.9;
+				else if (this.keys.right.isDown || (this.game.input.activePointer.isDown && this.game.input.activePointer.x > this.sprite.body.x)) {
+					if (onGround === true) {
+						if (this.sprite.body.velocity.x < this.settings.groundMovingSpeed ) {
+							this.sprite.body.velocity.x = this.settings.groundMovingSpeed;
+						}
+						
+					}
+					else {
+						if (this.sprite.body.velocity.x < this.settings.airMovingSpeed ) {
+							this.sprite.body.velocity.x = this.settings.airMovingSpeed;
+						}
+					}
+				}
+				else if (onGround === true) {
+					// We are emulating friction with ground, since the actual material friction doesnt
+					// seem to work with rolling...
+					this.sprite.body.velocity.x *= 0.9;
+				}
 			}
 		}
 
 		// We are charging the strike
 		if (this.power.value > 0) {
 			if (this.game.input.activePointer.isDown) {
-				this.power.angle = Math.atan2(this.game.input.activePointer.position.y - this.sprite.body.y, this.game.input.activePointer.position.x - this.sprite.body.x)
+				this.power.angle = Math.atan2(this.game.input.activePointer.position.y - this.sprite.body.y, this.game.input.activePointer.position.x - this.sprite.body.x);
 			}
 			else {
 				if (this.keys.left.isDown) {
@@ -112,25 +138,33 @@ class Player {
 			}
 		}
 
-		// Charging the strike, if we press keydown, or press pointer in the higher than 3rd of the height of the game
-		if ((this.keys.down.isDown
-			  || (this.game.input.activePointer.isDown && this.game.input.activePointer.y < this.game.world.height * 0.66)
-			  || (this.power.value > 0 && this.game.input.activePointer.isDown === true))
-			  && onGround === true) {
-			// We stop the moving, seems to be more fun play that way
-			//this.sprite.body.velocity.x = 0;
+		// Charging the strike, if we press keydown
+		if ((this.keys.down.isDown || this.game.input.activePointer.isDown) && (onGround === true || this.settings.allowAirCharging === true)) {
 			this.power.value += this.settings.chargeSpeed;
 			if (this.power.value > this.settings.chargeMax) {
 				this.power.value = this.settings.chargeMax;
 			}
-			this.game.time.slowMotion = 5;
+			if (this.settings.chargeGameSpeed === 0) {
+				this.game.physics.p2.pause();
+				// We stop the moving if we pause, otherwise too hard to aim while taking velocity in account
+				this.sprite.body.velocity.x = 0;
+			}
+			else {
+				this.game.time.slowMotion = 1 / this.settings.chargeGameSpeed;
+			}
 		}
 		// When down-key is relesed, apply to power to the balls movement
 		if (this.game.input.activePointer.justReleased() || this.keys.down.justUp) {
 			this.sprite.body.velocity.x += Math.cos(this.power.angle) * this.power.value * 15;
 			this.sprite.body.velocity.y += Math.sin(this.power.angle) * this.power.value * 15;
 			this.power.value = 0;
-			this.game.time.slowMotion = 1;
+
+			if (this.settings.chargeGameSpeed === 0) {
+				this.game.physics.p2.resume();
+			}
+			else {
+				this.game.time.slowMotion = 1 / this.settings.gameSpeed;
+			}
 		}
 
 		// Update the power lines
@@ -161,7 +195,7 @@ class Player {
 		if (this.game.playball.sprite.body.x > this.game.world.centerX) {
 			ballIsOnMySide = true;
 			// We try to move below the ball if ball is on our side of the play area
-			distanceX = this.sprite.body.x - this.game.playball.sprite.body.x;;
+			distanceX = this.sprite.body.x - this.game.playball.sprite.body.x;
 		}
 
 		// Where playball will be when we want to hit it

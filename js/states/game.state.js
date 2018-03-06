@@ -22,6 +22,7 @@ class GameState {
 
 		this.game.time.advancedTiming = true;
 		this.game.time.desiredFps = 60;
+		this.game.time.slowMotion = 1 / this.settings.gameSpeed;
 
 		this.game.physics.startSystem(Phaser.Physics.P2JS);
 
@@ -145,6 +146,9 @@ class GameState {
 
 		// This keeps track of the score (and draws it for now atleast)
 		this.game.scorekeeper = new ScoreKeeper(this.game.playball, this.game, this.settings);
+	}
+
+	gofull() {
 	}
 
 	resetPositions() {

@@ -25,94 +25,117 @@
 
 		// @TODO, load settings with AJAX from external file
 		var settings = {
+			desktop: {
+				player1: {
 
-			player1: {
+					keys: {
 
-				keys: {
+						up: Phaser.Keyboard.W,
+						left: Phaser.Keyboard.A,
+						right: Phaser.Keyboard.D,
+						down: Phaser.Keyboard.S,
 
-					up: Phaser.Keyboard.W,
-					left: Phaser.Keyboard.A,
-					right: Phaser.Keyboard.D,
-					down: Phaser.Keyboard.S,
+					},
+
+					powerLineColor: 0x00ff00,
+					image: 'images/player1.png',
+					autoMove: false,
+
+				},
+
+				player2: {
+
+					keys: {
+
+						up: Phaser.Keyboard.UP,
+						left: Phaser.Keyboard.LEFT,
+						right: Phaser.Keyboard.RIGHT,
+						down: Phaser.Keyboard.DOWN,
+
+					},
+					aiControlled: true,
+					powerLineColor: 0xff0000,
+					image: 'images/player2.png',
+					autoMove: true,
 
 				},
 
-				powerLineColor: 0x00ff00,
-				image: 'images/player1.png',
+				playball: {
 
-			},
-
-			player2: {
-
-				keys: {
-
-					up: Phaser.Keyboard.UP,
-					left: Phaser.Keyboard.LEFT,
-					right: Phaser.Keyboard.RIGHT,
-					down: Phaser.Keyboard.DOWN,
+					image: 'images/playball.png',
 
 				},
-				aiControlled: true,
-				powerLineColor: 0xff0000,
-				image: 'images/player2.png',
 
-			},
+				ballProperties: {
 
-			playball: {
+					mass: 10,
+					bouncinessBetweenBalls: 0.95,
+					bouncinessWithWorld: 0.8,
 
-				image: 'images/playball.png',
+				},
 
-			},
+				net: {
 
-			ballProperties: {
+					width: 20,
+					height: 250,
 
-				mass: 10,
-				bouncinessBetweenBalls: 0.95,
-				bouncinessWithWorld: 0.8,
+				},
 
-			},
+				scoreTextStyle: {
 
-			net: {
+					font: "bold 32px Arial", 
+					fill: "#000", 
+					boundsAlignH: "center", 
+					boundsAlignV: "middle" ,
 
-				width: 20,
-				height: 250,
+				},
 
-			},
+				debug: {
+					ai: false,
+					fps: false,
+					pointer: false,
+				},
 
-			scoreTextStyle: {
+				turningSpeed: 0.03,
+				chargeSpeed: 1.5,
+				chargeMax: 70,
+				gravity: 400,
+				airMovingSpeed: 150,
+				groundMovingSpeed: 300,
+				gameSpeed: 1,
+				chargeGameSpeed: 0.3,
+				allowAirCharging: false,
+			}
+		};
 
-				font: "bold 32px Arial", 
-				fill: "#000", 
-				boundsAlignH: "center", 
-				boundsAlignV: "middle" ,
-
-			},
-
-			debug: {
-				ai: false,
-				fps: false,
-				pointer: false,
-			},
-
-			turningSpeed: 0.03,
-			chargeSpeed: 1.5,
-			chargeMax: 70,
-			gravity: 400,
-			airMovingSpeed: 150,
-			groundMovingSpeed: 300,
-
-		}
+		// Deep copy the desktop settings, so we can override just what changes in the mobile version
+		settings.mobile = JSON.parse(JSON.stringify(settings.desktop));
+		settings.mobile.player1.autoMove = true;
+		settings.mobile.gameSpeed = 0.75;
+		settings.mobile.chargeGameSpeed = 0;
+		settings.mobile.allowAirCharging = true;
 
 		var game = new Phaser.Game(1280, 600, Phaser.AUTO, '', {});
 		
-		// Create players
-		game.players = [];
-		game.players.player1 = new Player('player1', game, settings);
-		game.players.player2 = new Player('player2', game, settings);
-		game.playball = new Playball('playball', game, settings);
-		game.state.add('Game',  new GameState(settings));
+		var currentSettings = settings.desktop;
 
-		game.state.start('Game');
+		Phaser.Device.onInitialized.add(function (device) {
+			// Detect mobile and use mobile settings if true
+			if (!game.device.desktop) {
+				currentSettings = settings.mobile;
+			}
+
+			// Create players
+			game.players = [];
+			game.players.player1 = new Player('player1', game, currentSettings);
+			game.players.player2 = new Player('player2', game, currentSettings);
+			game.playball = new Playball('playball', game, currentSettings);
+			game.state.add('Game',  new GameState(currentSettings));
+
+			// Lets paly!
+			game.state.start('Game');
+		});
+
 
 	};
 
