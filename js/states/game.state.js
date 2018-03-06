@@ -25,8 +25,15 @@ class GameState {
 
 		this.game.physics.startSystem(Phaser.Physics.P2JS);
 
+		// This makes physics not related to FPS, dunno why it is related by default to fps in the first place
+		// Needed for "bullet time" basically
+		this.game.physics.p2.useElapsedTime = true;
+
 		//  Set the world (global) gravity
 		this.game.physics.p2.gravity.y = this.settings.gravity;
+
+		// Touch input/mouse
+		this.game.input.addPointer();
 		
 		// Create player sprites
 		this.game.players.player1.createSprite(this.game.world.centerX / 4, this.game.world.height - 55);
@@ -162,6 +169,9 @@ class GameState {
 	}
 
 	update() {
+		// This is how we make smooth slowmotion, otherwise it is choppy
+		// Assuming FPS is 60
+		this.game.time.desiredFps = this.game.time.slowMotion * 60;
 		this.game.players.player1.update();
 		this.game.players.player2.update();
 		this.game.scorekeeper.update();
@@ -172,5 +182,14 @@ class GameState {
 		//this.game.debug.text("Bottom: " + this.game.playball.sprite.bottom, 150, 150);
 		//this.game.debug.geom(this.game.players.player2.power.line, 'rgba(255,0,0,1)' ) ;
 		this.game.players.player2.render();
+		if (this.settings.debug.fps) {
+			this.game.debug.object(this.game.time, 20, 60, {
+				keys: ['slowMotion', 'desiredFps', 'physicsElapsedMS'],
+				label: 'game.time',
+				color: 'auto',
+			  });
+		}
+		//this.game.debug.pointer(this.game.input.activePointer);
+
 	}
 }

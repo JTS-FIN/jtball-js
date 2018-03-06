@@ -62,7 +62,7 @@ class Player {
 			if (onGround) {
 				this.sprite.body.velocity.y = 5;
 			}
-			if (this.keys.left.isDown) {
+			if (this.keys.left.isDown || (this.game.input.activePointer.isDown && this.game.input.activePointer.x < this.sprite.body.x)) {
 				if (onGround === true) {
 					// if we move already faster to this direction, we dont slow down with this
 					// So only apply when we are moving slower to left than this
@@ -76,7 +76,7 @@ class Player {
 					}
 				}
 			}
-			else if (this.keys.right.isDown) {
+			else if (this.keys.right.isDown || (this.game.input.activePointer.isDown && this.game.input.activePointer.x > this.sprite.body.x)) {
 				if (onGround === true) {
 					if (this.sprite.body.velocity.x < this.settings.groundMovingSpeed ) {
 						this.sprite.body.velocity.x = this.settings.groundMovingSpeed;
@@ -98,33 +98,39 @@ class Player {
 
 		// We are charging the strike
 		if (this.power.value > 0) {
-			if (this.keys.right.isDown) {				
-				this.power.angle += this.settings.turningSpeed;
+			if (this.game.input.activePointer.isDown) {
+				this.power.angle = Math.atan2(this.game.input.activePointer.y - this.sprite.body.y, this.game.input.activePointer.x - this.sprite.body.x)
 			}
-
-			if (this.keys.left.isDown) {
-				this.power.angle += this.settings.turningSpeed * -1;
-			}
-			if (this.keys.right.isDown) {				
-				this.power.angle += this.settings.turningSpeed;
+			else {
+				if (this.keys.left.isDown) {
+					this.power.angle += this.settings.turningSpeed * -1;
+				}
+				if (this.keys.right.isDown) {				
+					this.power.angle += this.settings.turningSpeed;
+				}
 			}
 		}
 
-		if (this.keys.down.isDown && onGround === true) {
+		// Charging the strike, if we press keydown, or press pointer in the higher than 3rd of the height of the game
+		if (this.keys.down.isDown
+			  || (this.game.input.activePointer.isDown && this.game.input.activePointer.y < this.game.world.height * 0.66)
+			  || (this.power.value > 0 && this.game.input.activePointer.isDown === true) 
+			  && onGround === true) {
 			// We stop the moving, seems to be more fun play that way
-			this.sprite.body.velocity.x = 0;
+			//this.sprite.body.velocity.x = 0;
 			this.power.value += this.settings.chargeSpeed;
 			if (this.power.value > this.settings.chargeMax) {
 				this.power.value = this.settings.chargeMax;
 			}
-			this.game.physics.p2.pause();
+			this.game.time.slowMotion = 5;
 		}
 		// When down-key is relesed, apply to power to the balls movement
-		if (this.keys.down.justUp) {
+		if (this.game.input.activePointer.justReleased() || this.keys.down.justUp) {
 			this.sprite.body.velocity.x += Math.cos(this.power.angle) * this.power.value * 15;
 			this.sprite.body.velocity.y += Math.sin(this.power.angle) * this.power.value * 15;
 			this.power.value = 0;
 			this.game.physics.p2.resume();
+			this.game.time.slowMotion = 1;
 		}
 
 		// Update the power lines
